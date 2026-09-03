@@ -1,0 +1,19 @@
+{
+  "name": "inventory-management-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Inventory Management System — CSE3206 team project (React + Express + Drizzle + Neon Postgres)",
+  "scripts": {
+    "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "db:push": "npm run db:push --prefix backend",
+    "db:seed": "npm run db:seed --prefix backend",
+    "db:studio": "npm run db:studio --prefix backend",
+    "build": "npm run build --prefix frontend",
+    "setup": "npm run install:all && npm run db:push && npm run db:seed"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

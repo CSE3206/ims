@@ -1,0 +1,34 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# environment — NEVER commit real credentials
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# build output
+dist/
+build/
+frontend/dist/
+
+# drizzle
+backend/drizzle/meta/_journal.json.bak
+
+# logs
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# editors / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# coverage / temp
+coverage/
+.tmp/
