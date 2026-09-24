@@ -15,9 +15,9 @@ Fill in the GitHub usernames before the first push:
 
 | Member | GitHub username | Email |
 |--------|-----------------|-------|
-| Evan | | |
-| Najmul | | |
-| Rukaiya | | |
+| Evan | | Mathew2004 |
+| Najmul | | NAJMUL-NAHID |
+| Rukaiya | | Ummey-Rukaiya |
 
 ---
 
