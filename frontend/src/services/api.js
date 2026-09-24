@@ -78,70 +78,8 @@ const del = (path) => request(path, { method: 'DELETE' });
  * ------------------------------------------------------------------------ */
 export const api = {
   // Evan — auth & catalogue
-  auth: {
-    login: (credentials) => post('/auth/login', credentials),
-    register: (data) => post('/auth/register', data),
-    me: () => get('/auth/me'),
-  },
-  users: {
-    list: () => get('/users'),
-    create: (data) => post('/users', data),
-    update: (id, data) => patch(`/users/${id}`, data),
-    remove: (id) => del(`/users/${id}`),
-  },
-  categories: {
-    list: () => get('/categories'),
-    create: (data) => post('/categories', data),
-    update: (id, data) => patch(`/categories/${id}`, data),
-    remove: (id) => del(`/categories/${id}`),
-  },
-  products: {
-    list: (params) => get('/products', params),
-    get: (id) => get(`/products/${id}`),
-    lowStock: () => get('/products/low-stock'),
-    create: (data) => post('/products', data),
-    update: (id, data) => patch(`/products/${id}`, data),
-    remove: (id) => del(`/products/${id}`),
-  },
 
   // Najmul — suppliers & purchasing
-  suppliers: {
-    list: (params) => get('/suppliers', params),
-    get: (id) => get(`/suppliers/${id}`),
-    create: (data) => post('/suppliers', data),
-    update: (id, data) => patch(`/suppliers/${id}`, data),
-    remove: (id) => del(`/suppliers/${id}`),
-  },
-  purchaseOrders: {
-    list: (params) => get('/purchase-orders', params),
-    get: (id) => get(`/purchase-orders/${id}`),
-    create: (data) => post('/purchase-orders', data),
-    order: (id) => post(`/purchase-orders/${id}/order`),
-    receive: (id) => post(`/purchase-orders/${id}/receive`),
-    cancel: (id) => post(`/purchase-orders/${id}/cancel`),
-    remove: (id) => del(`/purchase-orders/${id}`),
-  },
 
   // Rukaiya — stock, sales & reports
-  stock: {
-    movements: (params) => get('/stock/movements', params),
-    in: (data) => post('/stock/in', data),
-    out: (data) => post('/stock/out', data),
-    adjust: (data) => post('/stock/adjust', data),
-  },
-  salesOrders: {
-    list: (params) => get('/sales-orders', params),
-    get: (id) => get(`/sales-orders/${id}`),
-    create: (data) => post('/sales-orders', data),
-    confirm: (id) => post(`/sales-orders/${id}/confirm`),
-    fulfil: (id) => post(`/sales-orders/${id}/fulfil`),
-    cancel: (id) => post(`/sales-orders/${id}/cancel`),
-  },
-  reports: {
-    dashboard: () => get('/reports/dashboard'),
-    valuation: (params) => get('/reports/valuation', params),
-    stockFlow: (params) => get('/reports/stock-flow', params),
-    topProducts: (params) => get('/reports/top-products', params),
-    downloadCsv: (report) => request(`/reports/${report}?format=csv`, { raw: true }),
-  },
 };
