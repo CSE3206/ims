@@ -196,3 +196,37 @@ test('report query accepts optional to date', () => {
 
   assert.equal(result.success, true);
 });
+
+test('movement query accepts an out movement with pagination', () => {
+  const result = movementQuerySchema.safeParse({
+    page: 2,
+    limit: 25,
+    productId: validProductId,
+    type: 'out',
+  });
+
+  assert.equal(result.success, true);
+  assert.equal(result.data.page, 2);
+  assert.equal(result.data.limit, 25);
+  assert.equal(result.data.type, 'out');
+});
+
+test('movement query accepts an adjustment movement', () => {
+  const result = movementQuerySchema.safeParse({
+    type: 'adjustment',
+  });
+
+  assert.equal(result.success, true);
+  assert.equal(result.data.type, 'adjustment');
+});
+
+test('report query accepts CSV output with a date range', () => {
+  const result = reportQuerySchema.safeParse({
+    from: '2026-09-01',
+    to: '2026-09-25',
+    format: 'csv',
+  });
+
+  assert.equal(result.success, true);
+  assert.equal(result.data.format, 'csv');
+});
