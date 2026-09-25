@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {
   stockInOutSchema,
   stockAdjustSchema,
+  movementQuerySchema,
 } from './schemas.js';
 
 const validProductId = '550e8400-e29b-41d4-a716-446655440000';
@@ -117,4 +118,33 @@ test('stock adjustment accepts a numeric string quantity', () => {
   });
 
   assert.equal(result.success, true);
+});
+
+// Stock movement query validation tests
+
+test('movement query accepts valid filters', () => {
+  const result = movementQuerySchema.safeParse({
+    page: 1,
+    limit: 50,
+    productId: validProductId,
+    type: 'in',
+  });
+
+  assert.equal(result.success, true);
+});
+
+test('movement query rejects an invalid movement type', () => {
+  const result = movementQuerySchema.safeParse({
+    type: 'invalid',
+  });
+
+  assert.equal(result.success, false);
+});
+
+test('movement query rejects an invalid product ID', () => {
+  const result = movementQuerySchema.safeParse({
+    productId: 'invalid-id',
+  });
+
+  assert.equal(result.success, false);
 });
