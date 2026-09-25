@@ -135,6 +135,7 @@ Create the branches once, after the first push:
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How a request flows through the code |
 | [docs/API.md](docs/API.md) | Every endpoint, with curl examples |
 | [docs/DATABASE.md](docs/DATABASE.md) | Tables, relationships, design decisions |
+| [docs/lab-report/LAB_REPORT.md](docs/lab-report/LAB_REPORT.md) | Lab report: how the team collaborated, with commit-history screenshots |
 
 ## Repository layout
 
