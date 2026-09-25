@@ -1,7 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { categorySchema, createProductSchema, updateProductSchema } from './schemas.js';
+import {
+  categorySchema,
+  createProductSchema,
+  updateProductSchema,
+  productQuerySchema,
+} from './schemas.js';
 
 // Product update validation tests
 test('product update with only a name does not fill in defaults', () => {
@@ -117,6 +122,78 @@ test('product create rejects a one-character SKU', () => {
 
 test('product create rejects a category id that is not a uuid', () => {
   const result = createProductSchema.safeParse({ sku: 'MON-6001', name: 'Monitor', categoryId: '' });
+
+  assert.equal(result.success, false);
+});
+
+// Product list query tests
+test('product query applies defaults when no parameters are given', () => {
+  const result = productQuerySchema.safeParse({});
+
+  assert.equal(result.success, true);
+  assert.equal(result.data.page, 1);
+  assert.equal(result.data.limit, 20);
+  assert.equal(result.data.sort, 'name');
+  assert.equal(result.data.order, 'asc');
+  assert.equal(result.data.lowStock, false);
+});
+
+test('product query coerces page and limit from query strings', () => {
+  const result = productQuerySchema.safeParse({ page: '3', limit: '50' });
+
+  assert.equal(result.success, true);
+  assert.equal(result.data.page, 3);
+  assert.equal(result.data.limit, 50);
+});
+
+test('product query rejects a limit above 200', () => {
+  const result = productQuerySchema.safeParse({ limit: '201' });
+
+  assert.equal(result.success, false);
+});
+
+test('product query rejects page 0', () => {
+  const result = productQuerySchema.safeParse({ page: '0' });
+
+  assert.equal(result.success, false);
+});
+
+test('product query turns lowStock=true into a boolean', () => {
+  const result = productQuerySchema.safeParse({ lowStock: 'true' });
+
+  assert.equal(result.success, true);
+  assert.equal(result.data.lowStock, true);
+});
+
+test('product query rejects a lowStock value other than true or false', () => {
+  const result = productQuerySchema.safeParse({ lowStock: 'yes' });
+
+  assert.equal(result.success, false);
+});
+
+test('product query rejects a sort column that is not allowed', () => {
+  const result = productQuerySchema.safeParse({ sort: 'costPrice' });
+
+  assert.equal(result.success, false);
+});
+
+test('product query accepts a combined search, filter and sort', () => {
+  const result = productQuerySchema.safeParse({
+    search: '  laptop ',
+    categoryId: '550e8400-e29b-41d4-a716-446655440000',
+    lowStock: 'true',
+    sort: 'quantity',
+    order: 'desc',
+  });
+
+  assert.equal(result.success, true);
+  assert.equal(result.data.search, 'laptop');
+  assert.equal(result.data.sort, 'quantity');
+  assert.equal(result.data.order, 'desc');
+});
+
+test('product query rejects a supplier id that is not a uuid', () => {
+  const result = productQuerySchema.safeParse({ supplierId: 'acme' });
 
   assert.equal(result.success, false);
 });
