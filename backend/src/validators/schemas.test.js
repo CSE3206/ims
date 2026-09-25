@@ -6,6 +6,7 @@ import {
   stockInOutSchema,
   stockAdjustSchema,
   movementQuerySchema,
+  reportQuerySchema,
 } from './schemas.js';
 
 const validProductId = '550e8400-e29b-41d4-a716-446655440000';
@@ -171,4 +172,27 @@ test('movement query rejects a limit above 200', () => {
   });
 
   assert.equal(result.success, false);
+});
+
+test('report query defaults to JSON format', () => {
+  const result = reportQuerySchema.safeParse({});
+
+  assert.equal(result.success, true);
+  assert.equal(result.data.format, 'json');
+});
+
+test('report query accepts optional from date', () => {
+  const result = reportQuerySchema.safeParse({
+    from: '2026-09-01',
+  });
+
+  assert.equal(result.success, true);
+});
+
+test('report query accepts optional to date', () => {
+  const result = reportQuerySchema.safeParse({
+    to: '2026-09-25',
+  });
+
+  assert.equal(result.success, true);
 });
