@@ -2,18 +2,30 @@
  * Suppliers — CRUD plus the product count each one supplies.
  * Owner: Najmul — feature/purchasing
  */
-import { asc, eq, ilike, or, sql } from 'drizzle-orm';
+import { and, asc, eq, ilike, or, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { suppliers, products } from '../db/schema.js';
 import { ApiError } from '../utils/ApiError.js';
 
 export async function listSuppliers(query = {}) {
-  const { search } = query;
-  const where = search
-    ? or(ilike(suppliers.name, `%${search}%`), ilike(suppliers.email, `%${search}%`))
-    : undefined;
+  const { search, isActive, page = 1, limit = 50 } = query;
 
-  return db
+  const filters = [];
+  if (search) {
+    filters.push(
+      or(
+        ilike(suppliers.name, `%${search}%`),
+        ilike(suppliers.email, `%${search}%`),
+        ilike(suppliers.contactPerson, `%${search}%`),
+      ),
+    );
+  }
+  if (isActive !== undefined) {
+    filters.push(eq(suppliers.isActive, isActive));
+  }
+  const where = filters.length ? and(...filters) : undefined;
+
+  const rows = await db
     .select({
       id: suppliers.id,
       name: suppliers.name,
@@ -29,7 +41,20 @@ export async function listSuppliers(query = {}) {
     .leftJoin(products, eq(products.supplierId, suppliers.id))
     .where(where)
     .groupBy(suppliers.id)
-    .orderBy(asc(suppliers.name));
+    .orderBy(asc(suppliers.name))
+    .limit(limit)
+    .offset((page - 1) * limit);
+
+  // Total count for pagination (separate query because of GROUP BY).
+  const [{ count }] = await db
+    .select({ count: sql`count(*)::int` })
+    .from(suppliers)
+    .where(where);
+
+  return {
+    data: rows,
+    pagination: { page, limit, total: count, totalPages: Math.max(1, Math.ceil(count / limit)) },
+  };
 }
 
 export async function getSupplier(id) {

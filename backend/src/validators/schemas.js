@@ -72,6 +72,14 @@ export const productQuerySchema = paginationQuery.extend({
 
 /* --- Najmul: suppliers, purchase orders --------------------------------- */
 
+export const supplierQuerySchema = paginationQuery.extend({
+  search: z.string().trim().max(120).optional(),
+  isActive: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((v) => (v === undefined ? undefined : v === 'true')),
+});
+
 export const supplierSchema = z.object({
   name: z.string().trim().min(2, 'Supplier name must be at least 2 characters').max(160),
   contactPerson: z.string().trim().max(120).optional().nullable(),
@@ -101,6 +109,22 @@ export const createPurchaseOrderSchema = z.object({
 export const purchaseOrderQuerySchema = paginationQuery.extend({
   status: z.enum(['draft', 'ordered', 'received', 'cancelled']).optional(),
   supplierId: z.string().uuid().optional(),
+});
+
+export const updatePurchaseOrderSchema = z.object({
+  supplierId: z.string().uuid('Choose a supplier').optional(),
+  expectedAt: z.string().datetime().or(z.string().date()).optional().nullable(),
+  notes: z.string().trim().max(1000).optional().nullable(),
+  items: z
+    .array(
+      z.object({
+        productId: z.string().uuid('Choose a product'),
+        quantity: positiveInt,
+        unitCost: nonNegativeMoney.default(0),
+      }),
+    )
+    .min(1, 'Add at least one line item')
+    .optional(),
 });
 
 /* --- Rukaiya: stock, sales, reports ------------------------------------- */

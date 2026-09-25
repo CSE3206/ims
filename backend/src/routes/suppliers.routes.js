@@ -4,15 +4,16 @@ import * as supplierService from '../services/supplier.service.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { uuidParam, supplierSchema, updateSupplierSchema } from '../validators/schemas.js';
+import { uuidParam, supplierSchema, updateSupplierSchema, supplierQuerySchema } from '../validators/schemas.js';
 
 const router = Router();
 router.use(requireAuth);
 
 router.get(
   '/',
+  validate({ query: supplierQuerySchema }),
   asyncHandler(async (req, res) => {
-    res.json({ data: await supplierService.listSuppliers(req.query) });
+    res.json(await supplierService.listSuppliers(req.query));
   }),
 );
 
