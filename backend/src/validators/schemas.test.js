@@ -82,3 +82,39 @@ test('stock adjustment rejects a decimal counted quantity', () => {
 
   assert.equal(result.success, false);
 });
+
+test('stock in/out rejects an invalid product ID', () => {
+  const result = stockInOutSchema.safeParse({
+    productId: 'invalid-id',
+    quantity: 5,
+  });
+
+  assert.equal(result.success, false);
+});
+
+test('stock adjustment rejects an invalid product ID', () => {
+  const result = stockAdjustSchema.safeParse({
+    productId: 'invalid-id',
+    countedQuantity: 5,
+  });
+
+  assert.equal(result.success, false);
+});
+
+test('stock in/out accepts a numeric string quantity', () => {
+  const result = stockInOutSchema.safeParse({
+    productId: validProductId,
+    quantity: '5',
+  });
+
+  assert.equal(result.success, true);
+});
+
+test('stock adjustment accepts a numeric string quantity', () => {
+  const result = stockAdjustSchema.safeParse({
+    productId: validProductId,
+    countedQuantity: '10',
+  });
+
+  assert.equal(result.success, true);
+});
