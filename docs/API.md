@@ -74,6 +74,32 @@ TOKEN=$(curl -s -X POST localhost:4000/api/auth/login \
   -d '{"email":"evan@ims.local","password":"password123"}' | jq -r .token)
 ```
 
+**Register body**
+
+```jsonc
+{ "name": "Rukaiya",               // required, 2–120 characters
+  "email": "rukaiya@ims.local",    // required, stored lowercased, unique
+  "password": "password123",       // required, 6–100 characters
+  "role": "staff" }                // admin | manager | staff, default staff
+```
+
+`register` and `login` both return `{ user, token }`. Tokens last `JWT_EXPIRES_IN`
+(default 7 days); the frontend stores the token and sends it on every request.
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" localhost:4000/api/auth/me
+# {"user":{"id":"6de64f2b-…","name":"Evan","email":"evan@ims.local","role":"admin",…}}
+```
+
+**Errors**
+
+| Case | Status | Message |
+|------|--------|---------|
+| Unknown email **or** wrong password | 401 | `Invalid email or password` — same text for both, so the API does not reveal which emails exist |
+| Account deactivated by an admin | 403 | `This account has been deactivated` |
+| Email already registered | 409 | `An account with that email already exists` |
+| No token / bad token | 401 | `Missing Bearer token` / `Invalid or expired token` |
+
 ---
 
 ## Users — *Evan* (admin only)
@@ -84,6 +110,26 @@ TOKEN=$(curl -s -X POST localhost:4000/api/auth/login \
 | POST | `/users` | A | Create a user |
 | PATCH | `/users/:id` | A | Change name, role, password or active flag |
 | DELETE | `/users/:id` | A | Delete (you cannot delete yourself) |
+
+`POST /users` takes the same body as `/auth/register` and returns `{ data: user }`
+without a token. The password hash is never included in any response.
+
+**Update body** — send only the fields you are changing:
+
+```jsonc
+{ "name": "Najmul Islam",
+  "role": "manager",       // admin | manager | staff
+  "isActive": false,       // a real boolean, not "false"
+  "password": "newpass1" } // 6–100 characters, re-hashed with bcrypt
+```
+
+```bash
+# promote a user to manager
+curl -X PATCH localhost:4000/api/users/<id> -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"role":"manager"}'
+```
+
+A manager or staff token gets `403 Requires role: admin` on every `/users` route.
 
 ---
 
@@ -102,6 +148,14 @@ curl -X POST localhost:4000/api/categories -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"name":"Monitors","description":"Displays and panels"}'
 ```
+
+| Field | Rules |
+|-------|-------|
+| `name` | required on create, 2–120 characters, unique — a duplicate returns 409 |
+| `description` | optional, up to 1000 characters, may be `null` |
+
+`PATCH` accepts either field on its own. `productCount` in the list counts every
+product in the category, active or not.
 
 ---
 
@@ -148,6 +202,25 @@ curl -H "Authorization: Bearer $TOKEN" \
   "quantity": 12,               // opening stock, create only
   "reorderLevel": 5 }
 ```
+
+On create, anything left out gets a default: `unit` `"pcs"`, prices `0`,
+`quantity` `0`, `reorderLevel` `10`, `isActive` `true`. Numbers may be sent as
+strings (form inputs) and are converted. Prices come back as strings, e.g.
+`"23500.00"`, because they are stored as `numeric(12,2)`.
+
+**Update body** — a partial: only the fields you send are changed, and nothing
+is reset to its default. `quantity` is dropped; change stock through
+[`/stock`](#stock--rukaiya) so the ledger records it.
+
+```bash
+curl -X PATCH localhost:4000/api/products/<id> -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"sellingPrice":24500,"reorderLevel":8}'
+```
+
+Deleting a product that appears on any purchase or sales order line returns
+`400 Referenced record does not exist, or is still in use`. A product with no
+order lines is deleted together with its stock movements, so prefer
+`isActive: false` to hide a product that has history.
 
 ---
 
