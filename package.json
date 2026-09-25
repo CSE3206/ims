@@ -10,6 +10,7 @@
     "db:push": "npm run db:push --prefix backend",
     "db:seed": "npm run db:seed --prefix backend",
     "db:studio": "npm run db:studio --prefix backend",
+    "test": "npm test --prefix backend",
     "build": "npm run build --prefix frontend",
     "setup": "npm run install:all && npm run db:push && npm run db:seed"
   },
