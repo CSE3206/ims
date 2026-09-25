@@ -116,6 +116,7 @@ export const api = {
     list: (params) => get('/purchase-orders', params),
     get: (id) => get(`/purchase-orders/${id}`),
     create: (data) => post('/purchase-orders', data),
+    update: (id, data) => patch(`/purchase-orders/${id}`, data),
     order: (id) => post(`/purchase-orders/${id}/order`),
     receive: (id) => post(`/purchase-orders/${id}/receive`),
     cancel: (id) => post(`/purchase-orders/${id}/cancel`),

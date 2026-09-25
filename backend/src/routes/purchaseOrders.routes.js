@@ -11,6 +11,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import {
   uuidParam,
   createPurchaseOrderSchema,
+  updatePurchaseOrderSchema,
   purchaseOrderQuerySchema,
 } from '../validators/schemas.js';
 
@@ -39,6 +40,16 @@ router.post(
   validate({ body: createPurchaseOrderSchema }),
   asyncHandler(async (req, res) => {
     res.status(201).json({ data: await purchasing.createPurchaseOrder(req.body, req.user.id) });
+  }),
+);
+
+// Edit a draft order (header + line items)
+router.patch(
+  '/:id',
+  requireRole('admin', 'manager'),
+  validate({ params: uuidParam, body: updatePurchaseOrderSchema }),
+  asyncHandler(async (req, res) => {
+    res.json({ data: await purchasing.updatePurchaseOrder(req.params.id, req.body) });
   }),
 );
 

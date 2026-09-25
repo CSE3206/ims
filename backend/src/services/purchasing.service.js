@@ -86,6 +86,12 @@ export async function createPurchaseOrder({ supplierId, expectedAt, notes, items
     const [supplier] = await tx.select().from(suppliers).where(eq(suppliers.id, supplierId));
     if (!supplier) throw ApiError.badRequest('Supplier not found');
 
+    // Validate that every product exists before creating line items.
+    for (const item of items) {
+      const [product] = await tx.select({ id: products.id }).from(products).where(eq(products.id, item.productId));
+      if (!product) throw ApiError.badRequest(`Product ${item.productId} not found`);
+    }
+
     const existing = await tx.select({ poNumber: purchaseOrders.poNumber }).from(purchaseOrders);
     const poNumber = nextDocumentNumber('PO', existing.map((r) => r.poNumber));
 
@@ -115,6 +121,55 @@ export async function createPurchaseOrder({ supplierId, expectedAt, notes, items
   });
 }
 
+/**
+ * Update a draft purchase order — change supplier, expected date, notes,
+ * and/or replace all line items. Only drafts can be edited.
+ */
+export async function updatePurchaseOrder(id, { supplierId, expectedAt, notes, items }) {
+  const order = await requireStatus(id, ['draft'], 'Only draft orders can be edited');
+
+  return db.transaction(async (tx) => {
+    const updates = { updatedAt: new Date() };
+
+    // If changing supplier, validate the new one exists.
+    if (supplierId && supplierId !== order.supplierId) {
+      const [supplier] = await tx.select().from(suppliers).where(eq(suppliers.id, supplierId));
+      if (!supplier) throw ApiError.badRequest('Supplier not found');
+      updates.supplierId = supplierId;
+    }
+
+    if (expectedAt !== undefined) updates.expectedAt = expectedAt ? new Date(expectedAt) : null;
+    if (notes !== undefined) updates.notes = notes || null;
+
+    // If new line items provided, replace them all and recalculate total.
+    if (items?.length) {
+      for (const item of items) {
+        const [product] = await tx.select({ id: products.id }).from(products).where(eq(products.id, item.productId));
+        if (!product) throw ApiError.badRequest(`Product ${item.productId} not found`);
+      }
+
+      await tx.delete(purchaseOrderItems).where(eq(purchaseOrderItems.purchaseOrderId, id));
+      await tx.insert(purchaseOrderItems).values(
+        items.map((item) => ({
+          purchaseOrderId: id,
+          productId: item.productId,
+          quantity: item.quantity,
+          unitCost: String(item.unitCost ?? 0),
+        })),
+      );
+      updates.total = lineItemsTotal(items, 'unitCost');
+    }
+
+    const [updated] = await tx
+      .update(purchaseOrders)
+      .set(updates)
+      .where(eq(purchaseOrders.id, id))
+      .returning();
+
+    return updated;
+  });
+}
+
 /** Move draft → ordered. After this the order is with the supplier. */
 export async function markOrdered(id) {
   const order = await requireStatus(id, ['draft'], 'Only a draft order can be marked as ordered');
@@ -129,12 +184,15 @@ export async function markOrdered(id) {
 /**
  * Receive the goods: every line item is added to stock in one transaction.
  * If any single line fails (e.g. a product was deleted) nothing is applied.
+ *
+ * This is the only step that changes inventory, and it does so by calling
+ * Rukaiya's applyMovement() — never by writing products.quantity directly.
  */
 export async function receivePurchaseOrder(id, userId) {
   const order = await requireStatus(
     id,
     ['draft', 'ordered'],
-    'This order has already been received or cancelled',
+    'This order has already been received or cancelled — a received order cannot be received again',
   );
 
   return db.transaction(async (tx) => {
