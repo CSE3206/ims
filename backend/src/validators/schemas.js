@@ -56,7 +56,23 @@ export const createProductSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
-export const updateProductSchema = createProductSchema.partial();
+// Written out rather than createProductSchema.partial(): Zod still applies
+// .default() inside a partial, so a PATCH of just the name would reset prices,
+// unit, reorder level and isActive. No quantity here — stock goes via the ledger.
+export const updateProductSchema = z
+  .object({
+    sku: z.string().trim().min(2, 'SKU must be at least 2 characters').max(64),
+    name: z.string().trim().min(2, 'Product name must be at least 2 characters').max(200),
+    description: z.string().trim().max(2000).nullable(),
+    categoryId: z.string().uuid().nullable(),
+    supplierId: z.string().uuid().nullable(),
+    unit: z.string().trim().max(24),
+    costPrice: nonNegativeMoney.transform(String),
+    sellingPrice: nonNegativeMoney.transform(String),
+    reorderLevel: z.coerce.number().int().min(0),
+    isActive: z.boolean(),
+  })
+  .partial();
 
 export const productQuerySchema = paginationQuery.extend({
   search: z.string().trim().max(120).optional(),
