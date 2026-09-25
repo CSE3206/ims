@@ -20,10 +20,15 @@ export default function PurchaseOrders() {
   const { canManage } = useAuth();
   const toast = useToast();
 
-  const [filters, setFilters] = useState({ status: '', page: 1, limit: 20 });
+  const [filters, setFilters] = useState({ status: '', supplierId: '', page: 1, limit: 20 });
   const { data, loading, error, reload } = useFetch(
-    () => api.purchaseOrders.list(filters),
-    [filters.status, filters.page],
+    () => api.purchaseOrders.list({
+      status: filters.status || undefined,
+      supplierId: filters.supplierId || undefined,
+      page: filters.page,
+      limit: filters.limit,
+    }),
+    [filters.status, filters.supplierId, filters.page],
   );
   const { data: supplierData } = useFetch(() => api.suppliers.list(), []);
   // limit=200 so every product is selectable in the line editor without paging.
@@ -66,7 +71,8 @@ export default function PurchaseOrders() {
   };
 
   /** Runs one of the status transitions and refreshes both list and drawer. */
-  const runAction = async (action, id, successMessage) => {
+  const runAction = async (action, id, successMessage, confirmMessage) => {
+    if (confirmMessage && !window.confirm(confirmMessage)) return;
     try {
       await action(id);
       toast.success(successMessage);
@@ -102,6 +108,15 @@ export default function PurchaseOrders() {
           <option value="received">Received</option>
           <option value="cancelled">Cancelled</option>
         </select>
+        <select
+          value={filters.supplierId}
+          onChange={(e) => setFilters({ ...filters, supplierId: e.target.value, page: 1 })}
+        >
+          <option value="">All suppliers</option>
+          {suppliers.map((s) => (
+            <option key={s.id} value={s.id}>{s.name}</option>
+          ))}
+        </select>
       </div>
 
       <ErrorNote error={error} />
@@ -128,6 +143,11 @@ export default function PurchaseOrders() {
               render: (r) => <span className="cell-muted">{r.expectedAt ? date(r.expectedAt) : '—'}</span>,
             },
             {
+              key: 'createdByName',
+              header: 'Created by',
+              render: (r) => <span className="cell-muted">{r.createdByName || '—'}</span>,
+            },
+            {
               key: 'actions',
               header: '',
               align: 'right',
@@ -147,7 +167,12 @@ export default function PurchaseOrders() {
                       type="button"
                       className="btn btn--sm"
                       onClick={() =>
-                        runAction(api.purchaseOrders.receive, row.id, `${row.poNumber} received — stock updated`)
+                        runAction(
+                          api.purchaseOrders.receive,
+                          row.id,
+                          `${row.poNumber} received — stock updated`,
+                          `Receive ${row.poNumber}? This will add all line items to inventory.`,
+                        )
                       }
                     >
                       Receive
@@ -264,6 +289,12 @@ function PurchaseOrderDetail({ id, onClose, onAction, canManage }) {
             </div>
           </div>
 
+          {order.createdByUser && (
+            <p className="cell-muted" style={{ marginBottom: 12, fontSize: '12.5px' }}>
+              Created by <strong>{order.createdByUser.name}</strong> on {date(order.createdAt)}
+            </p>
+          )}
+
           <table className="table">
             <thead>
               <tr>
@@ -317,7 +348,12 @@ function PurchaseOrderDetail({ id, onClose, onAction, canManage }) {
                   type="button"
                   className="btn"
                   onClick={() =>
-                    onAction(api.purchaseOrders.receive, order.id, `${order.poNumber} received — stock updated`)
+                    onAction(
+                      api.purchaseOrders.receive,
+                      order.id,
+                      `${order.poNumber} received — stock updated`,
+                      `Receive ${order.poNumber}? This will add all ${order.items.length} line items to inventory and cannot be undone.`,
+                    )
                   }
                 >
                   Receive goods
@@ -326,7 +362,14 @@ function PurchaseOrderDetail({ id, onClose, onAction, canManage }) {
                   <button
                     type="button"
                     className="btn btn--danger"
-                    onClick={() => onAction(api.purchaseOrders.cancel, order.id, `${order.poNumber} cancelled`)}
+                    onClick={() =>
+                      onAction(
+                        api.purchaseOrders.cancel,
+                        order.id,
+                        `${order.poNumber} cancelled`,
+                        `Cancel ${order.poNumber}? This cannot be undone.`,
+                      )
+                    }
                   >
                     Cancel order
                   </button>

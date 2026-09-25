@@ -1,9 +1,14 @@
 /**
  * Human-friendly document numbers: PO-2026-0007, SO-2026-0031.
+ * Owner: Najmul — feature/purchasing
  *
  * We derive the next sequence from the highest existing number for the current
  * year rather than a database sequence, so the numbering stays readable and
  * restartable in a class demo.
+ *
+ * @param {string} prefix  'PO' for purchase orders, 'SO' for sales orders
+ * @param {string[]} existingNumbers  all document numbers already in the table
+ * @returns {string} the next number, e.g. 'PO-2026-0008'
  */
 export function nextDocumentNumber(prefix, existingNumbers) {
   const year = new Date().getFullYear();

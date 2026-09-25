@@ -1,19 +1,29 @@
 /** Owner: Najmul — feature/purchasing */
 import { useState } from 'react';
 import { api } from '../services/api.js';
-import { useFetch } from '../hooks/useFetch.js';
+import { useFetch, useDebounced } from '../hooks/useFetch.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import DataTable from '../components/DataTable.jsx';
 import Modal from '../components/Modal.jsx';
-import { PageHeader, Badge, Field, ErrorNote, EmptyState } from '../components/ui.jsx';
+import { PageHeader, Badge, Pagination, Field, ErrorNote, EmptyState } from '../components/ui.jsx';
 
 const BLANK = { name: '', contactPerson: '', email: '', phone: '', address: '', isActive: true };
 
 export default function Suppliers() {
   const { canManage, isAdmin } = useAuth();
   const toast = useToast();
-  const { data, loading, error, reload } = useFetch(() => api.suppliers.list(), []);
+
+  // --- filters & search ---------------------------------------------------
+  const [search, setSearch] = useState('');
+  const [activeFilter, setActiveFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const debouncedSearch = useDebounced(search);
+
+  const { data, loading, error, reload } = useFetch(
+    () => api.suppliers.list({ search: debouncedSearch || undefined, isActive: activeFilter || undefined, page }),
+    [debouncedSearch, activeFilter, page],
+  );
 
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(BLANK);
@@ -94,6 +104,23 @@ export default function Suppliers() {
         }
       />
 
+      <div className="filters">
+        <input
+          type="search"
+          placeholder="Search by name, email or contact…"
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+        />
+        <select
+          value={activeFilter}
+          onChange={(e) => { setActiveFilter(e.target.value); setPage(1); }}
+        >
+          <option value="">All statuses</option>
+          <option value="true">Active only</option>
+          <option value="false">Inactive only</option>
+        </select>
+      </div>
+
       <ErrorNote error={error} />
 
       <div className="card">
@@ -169,6 +196,7 @@ export default function Suppliers() {
               : []),
           ]}
         />
+        <Pagination pagination={data?.pagination} onChange={setPage} />
       </div>
 
       <Modal

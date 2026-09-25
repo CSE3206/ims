@@ -155,11 +155,20 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 | Method | Path | Role | Description |
 |--------|------|------|-------------|
-| GET | `/suppliers` | S | All suppliers with `productCount`; `?search=` supported |
+| GET | `/suppliers` | S | Paginated list with `productCount`; search and filter supported |
 | GET | `/suppliers/:id` | S | One supplier |
 | POST | `/suppliers` | M | Create |
 | PATCH | `/suppliers/:id` | M | Update |
 | DELETE | `/suppliers/:id` | A | Blocked (400) if the supplier has purchase orders |
+
+**Query parameters for `GET /suppliers`**
+
+| Name | Type | Default | Notes |
+|------|------|---------|-------|
+| `search` | string | — | Matches name, email or contact person |
+| `isActive` | `true`/`false` | — | Filter by active status |
+| `page` | int | 1 | |
+| `limit` | int | 50 | max 200 |
 
 ```bash
 curl -X POST localhost:4000/api/suppliers -H "Authorization: Bearer $TOKEN" \
@@ -176,10 +185,20 @@ curl -X POST localhost:4000/api/suppliers -H "Authorization: Bearer $TOKEN" \
 | GET | `/purchase-orders` | S | `?status=`, `?supplierId=`, `?page=`, `?limit=` |
 | GET | `/purchase-orders/:id` | S | Order with supplier and expanded line items |
 | POST | `/purchase-orders` | M | Create a draft; number is generated |
+| PATCH | `/purchase-orders/:id` | M | Edit a draft — supplier, notes, and/or line items |
 | POST | `/purchase-orders/:id/order` | M | `draft → ordered` |
 | POST | `/purchase-orders/:id/receive` | S | `draft`\|`ordered` → `received` — **adds stock** |
 | POST | `/purchase-orders/:id/cancel` | M | `draft`\|`ordered` → `cancelled` |
 | DELETE | `/purchase-orders/:id` | A | Only `draft` or `cancelled` |
+
+### Status transition rules
+
+| From | Allowed transitions | Blocked | Notes |
+|------|---------------------|---------|-------|
+| `draft` | `ordered`, `received`, `cancelled` | — | Can also be edited or deleted |
+| `ordered` | `received`, `cancelled` | edit, delete | Order is with the supplier |
+| `received` | — | all | Terminal state; stock has been added |
+| `cancelled` | — | all except delete | Terminal state; can be deleted for cleanup |
 
 **Create body**
 
@@ -189,6 +208,17 @@ curl -X POST localhost:4000/api/suppliers -H "Authorization: Bearer $TOKEN" \
   "notes": "Quarterly restock",
   "items": [                      // at least one
     { "productId": "uuid", "quantity": 50, "unitCost": 880 }
+  ] }
+```
+
+**Update body** (PATCH — draft only, all fields optional)
+
+```jsonc
+{ "supplierId": "uuid",           // change supplier
+  "expectedAt": "2026-10-01",     // change expected date
+  "notes": "Updated notes",
+  "items": [                      // replaces ALL line items
+    { "productId": "uuid", "quantity": 100, "unitCost": 900 }
   ] }
 ```
 
@@ -209,7 +239,7 @@ curl -X POST localhost:4000/api/purchase-orders/$PO/order   -H "Authorization: B
 curl -X POST localhost:4000/api/purchase-orders/$PO/receive -H "Authorization: Bearer $TOKEN"
 
 # receiving twice is rejected:
-# {"error":{"message":"This order has already been received or cancelled"}}
+# {"error":{"message":"This order has already been received or cancelled — a received order cannot be received again"}}
 ```
 
 ---
