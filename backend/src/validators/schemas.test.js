@@ -148,3 +148,27 @@ test('movement query rejects an invalid product ID', () => {
 
   assert.equal(result.success, false);
 });
+
+test('movement query applies default pagination values', () => {
+  const result = movementQuerySchema.safeParse({});
+
+  assert.equal(result.success, true);
+  assert.equal(result.data.page, 1);
+  assert.equal(result.data.limit, 50);
+});
+
+test('movement query rejects page zero', () => {
+  const result = movementQuerySchema.safeParse({
+    page: 0,
+  });
+
+  assert.equal(result.success, false);
+});
+
+test('movement query rejects a limit above 200', () => {
+  const result = movementQuerySchema.safeParse({
+    limit: 201,
+  });
+
+  assert.equal(result.success, false);
+});
